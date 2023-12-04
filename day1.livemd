@@ -4,25 +4,212 @@
 
 ```elixir
 Mix.install([
-  {:kino, github: "livebook-dev/kino"}
+  {:kino, "~> 0.11.3"}
 ])
 ```
 
-<!-- livebook:{"output":true} -->
-
-```
-:ok
-```
-
-## Setup
+## Section
 
 ```elixir
-input = Kino.Input.textarea("Please paste your input file:")
+input = Kino.Input.textarea("Please paste your input file")
 ```
 
 ```elixir
 input =
   input
   |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line
+    |> String.codepoints()
+    |> Enum.map(fn codepoint ->
+      case Integer.parse(codepoint) do
+        {x, _} -> x
+        :error -> codepoint
+      end
+    end)
+  end)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["t", "w", "o", 1, "n", "i", "n", "e"],
+  ["e", "i", "g", "h", "t", "w", "o", "t", "h", "r", "e", "e"],
+  ["a", "b", "c", "o", "n", "e", 2, "t", "h", "r", "e", "e", "x", "y", "z"],
+  ["x", "t", "w", "o", "n", "e", 3, "f", "o", "u", "r"],
+  [4, "n", "i", "n", "e", "e", "i", "g", "h", "t", "s", "e", "v", "e", "n", 2],
+  ["z", "o", "n", "e", "i", "g", "h", "t", 2, 3, 4],
+  [7, "p", "q", "r", "s", "t", "s", "i", "x", "t", "e", "e", "n"]
+]
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.map(fn line ->
+  first = Enum.find(line, &is_number(&1))
+  last = Enum.find(Enum.reverse(line), &is_number(&1))
+
+  if is_nil(first) do
+    0
+  else
+    first * 10 + last
+  end
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+209
+```
+
+## Part 2
+
+```elixir
+number_words = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+
+number_words_reversed =
+  number_words |> Enum.map(&String.reverse(&1))
+
+all_words =
+  (number_words ++ number_words_reversed)
+  |> Enum.map(&String.codepoints(&1))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["o", "n", "e"],
+  ["t", "w", "o"],
+  ["t", "h", "r", "e", "e"],
+  ["f", "o", "u", "r"],
+  ["f", "i", "v", "e"],
+  ["s", "i", "x"],
+  ["s", "e", "v", "e", "n"],
+  ["e", "i", "g", "h", "t"],
+  ["n", "i", "n", "e"],
+  ["e", "n", "o"],
+  ["o", "w", "t"],
+  ["e", "e", "r", "h", "t"],
+  ["r", "u", "o", "f"],
+  ["e", "v", "i", "f"],
+  ["x", "i", "s"],
+  ["n", "e", "v", "e", "s"],
+  ["t", "h", "g", "i", "e"],
+  ["e", "n", "i", "n"]
+]
+```
+
+```elixir
+defmodule Trebuchet do
+  def calibrate([], _words), do: nil
+
+  def calibrate([num | _rest], _words) when is_number(num) do
+    num
+  end
+
+  def calibrate(line, words) do
+    num =
+      words
+      |> Enum.find(fn word ->
+        List.starts_with?(line, word)
+      end)
+
+    if is_nil(num) do
+      Trebuchet.calibrate(tl(line), words)
+    else
+      Trebuchet.understand_handwriting(num, words)
+    end
+  end
+
+  def understand_handwriting(word, words) do
+    index = Enum.find_index(words, fn w -> w == word end)
+    value = if index > 10, do: index - 8, else: index + 1
+    value
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Trebuchet, <<70, 79, 82, 49, 0, 0, 10, ...>>, {:understand_handwriting, 2}}
+```
+
+```elixir
+input
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  ["t", "w", "o", 1, "n", "i", "n", "e"],
+  ["e", "i", "g", "h", "t", "w", "o", "t", "h", "r", "e", "e"],
+  ["a", "b", "c", "o", "n", "e", 2, "t", "h", "r", "e", "e", "x", "y", "z"],
+  ["x", "t", "w", "o", "n", "e", 3, "f", "o", "u", "r"],
+  [4, "n", "i", "n", "e", "e", "i", "g", "h", "t", "s", "e", "v", "e", "n", 2],
+  ["z", "o", "n", "e", "i", "g", "h", "t", 2, 3, 4],
+  [7, "p", "q", "r", "s", "t", "s", "i", "x", "t", "e", "e", "n"]
+]
+```
+
+```elixir
+res =
+  input
+  |> Enum.map(fn line ->
+    first = Trebuchet.calibrate(line, all_words)
+    last = Trebuchet.calibrate(Enum.reverse(line), all_words)
+    IO.puts(first)
+    IO.puts(last)
+
+    if is_nil(first) do
+      raise "what"
+    else
+      first * 10 + last
+    end
+  end)
+
+res
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2
+9
+8
+3
+1
+3
+2
+4
+4
+2
+1
+4
+7
+6
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[29, 83, 13, 24, 42, 14, 76]
+```
+
+```elixir
+res |> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+281
+```
