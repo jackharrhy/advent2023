@@ -65,14 +65,14 @@ defmodule Schematic do
         y = yp + y
 
         if (xp == 0 && yp == 0) || x < 0 || y < 0 do
-          nil
+          {nil, {x, y}}
         else
           row = Enum.at(grid, y)
 
           if is_nil(row) do
-            nil
+            {nil, {x, y}}
           else
-            Enum.at(row, x)
+            {Enum.at(row, x), {x, y}}
           end
         end
       end
@@ -89,6 +89,7 @@ defmodule Schematic do
         near_symbol =
           surronding(grid, {x, y})
           |> List.flatten()
+          |> Enum.map(&elem(&1, 0))
           |> Enum.filter(&is_bitstring(&1))
           |> Enum.any?()
 
@@ -127,7 +128,7 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Schematic, <<70, 79, 82, 49, 0, 0, 17, ...>>, {:smush_into_part_ids, 3}}
+{:module, Schematic, <<70, 79, 82, 49, 0, 0, 18, ...>>, {:smush_into_part_ids, 3}}
 ```
 
 ```elixir
@@ -156,11 +157,94 @@ end)
 ## Part 2
 
 ```elixir
+defmodule GearSchematic do
+  def mark_seen(grid) do
+    grid
+    |> Enum.with_index()
+    |> Enum.map(fn {row, y} ->
+      row
+      |> Enum.with_index()
+      |> Enum.map(fn {cell, x} ->
+        near_symbols =
+          Schematic.surronding(grid, {x, y})
+          |> List.flatten()
+          |> Enum.filter(fn {val, _} -> val == "*" end)
 
+        has_near_symbols = Enum.any?(near_symbols)
+
+        {cell, {has_near_symbols, near_symbols}}
+      end)
+    end)
+  end
+end
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-nil
+{:module, GearSchematic, <<70, 79, 82, 49, 0, 0, 10, ...>>, {:mark_seen, 1}}
+```
+
+```elixir
+parts =
+  GearSchematic.mark_seen(input)
+  |> Enum.map(&Schematic.smush_into_part_ids(&1))
+  |> Enum.concat()
+  |> Enum.filter(fn part_id ->
+    Enum.any?(part_id, fn {_, {symbol, _}} -> symbol end)
+  end)
+  |> Enum.map(fn part_id ->
+    number =
+      part_id
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.join("")
+      |> Integer.parse()
+      |> elem(0)
+
+    matched_symbols =
+      part_id
+      |> Enum.filter(fn {_, {seen, _}} -> seen end)
+      |> Enum.map(fn {_, {_, positions}} ->
+        positions
+        |> Enum.map(fn {_, pos} -> pos end)
+      end)
+      |> List.flatten()
+      |> Enum.uniq()
+
+    {number, matched_symbols}
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[{467, [{3, 1}]}, {35, [{3, 1}]}, {617, [{3, 4}]}, {755, [{5, 8}]}, {598, [{5, 8}]}]
+```
+
+```elixir
+Enum.reduce(parts, %{}, fn {part_number, neighbors}, acc ->
+  Enum.reduce(neighbors, acc, fn point, acc ->
+    Map.get_and_update(acc, point, fn cur ->
+      next =
+        if is_nil(cur) do
+          [part_number]
+        else
+          [part_number | cur]
+        end
+
+      {cur, next}
+    end)
+    |> elem(1)
+  end)
+end)
+|> Map.filter(fn {_key, val} -> length(val) == 2 end)
+|> Map.values()
+|> Enum.map(fn [r, l] -> r * l end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+467835
 ```
