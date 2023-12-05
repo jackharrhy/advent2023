@@ -60,18 +60,31 @@ input =
 ]
 ```
 
+```elixir
+cards =
+  for {card, winning, have} <- input do
+    count =
+      for pick <- have do
+        MapSet.member?(winning, pick)
+      end
+      |> Enum.filter(& &1)
+      |> Enum.count()
+
+    {card, count}
+  end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[{1, 4}, {2, 2}, {3, 2}, {4, 1}, {5, 0}, {6, 0}]
+```
+
 ## Part 1
 
 ```elixir
-for {_card, winning, have} <- input do
-  counted =
-    for pick <- have do
-      MapSet.member?(winning, pick)
-    end
-    |> Enum.filter(& &1)
-    |> Enum.count()
-
-  score = Integer.pow(2, counted) / 2
+for {_card, count} <- cards do
+  score = Integer.pow(2, count) / 2
   floor(score)
 end
 |> Enum.sum()
@@ -86,11 +99,61 @@ end
 ## Part 2
 
 ```elixir
+defmodule Scratchcards do
+  def duplicate(cards) do
+    duplicate(0, cards)
+  end
 
+  def duplicate(index, cards) do
+    card = Map.get(cards, index)
+
+    if is_nil(card) do
+      cards
+    else
+      {winning, copies} = card
+
+      if winning == 0 do
+        duplicate(index + 1, cards)
+      else
+        range = (index + 1)..(index + winning)
+
+        cards =
+          Enum.reduce(range, cards, fn index, cards ->
+            if Map.has_key?(cards, index) do
+              Map.get_and_update!(cards, index, fn {other_winning, other_copies} = existing ->
+                {existing, {other_winning, copies + other_copies}}
+              end)
+              |> elem(1)
+            else
+              cards
+            end
+          end)
+
+        duplicate(index + 1, cards)
+      end
+    end
+  end
+end
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-nil
+{:module, Scratchcards, <<70, 79, 82, 49, 0, 0, 11, ...>>, {:duplicate, 2}}
+```
+
+```elixir
+cards
+|> Enum.map(fn {card_num, winning} -> {card_num - 1, {winning, 1}} end)
+|> Map.new()
+|> Scratchcards.duplicate()
+|> Map.values()
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+30
 ```
