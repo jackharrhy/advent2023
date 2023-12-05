@@ -130,7 +130,7 @@ defmodule Trebuchet do
 
   def understand_handwriting(word, words) do
     index = Enum.find_index(words, fn w -> w == word end)
-    value = if index > 10, do: index - 8, else: index + 1
+    value = if index >= 9, do: index - 8, else: index + 1
     value
   end
 end
@@ -166,36 +166,11 @@ res =
   |> Enum.map(fn line ->
     first = Trebuchet.calibrate(line, all_words)
     last = Trebuchet.calibrate(Enum.reverse(line), all_words)
-    IO.puts(first)
-    IO.puts(last)
 
-    if is_nil(first) do
-      raise "what"
-    else
-      first * 10 + last
-    end
+    first * 10 + last
   end)
 
 res
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-2
-9
-8
-3
-1
-3
-2
-4
-4
-2
-1
-4
-7
-6
 ```
 
 <!-- livebook:{"output":true} -->
