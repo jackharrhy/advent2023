@@ -1,0 +1,96 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Advent 2023 - Day 4
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn card ->
+    [card_num, rest] = String.split(card, ": ")
+
+    card_num =
+      card_num
+      |> String.trim_leading("Card")
+      |> String.replace(" ", "")
+      |> Integer.parse()
+      |> elem(0)
+
+    [winning, have] = String.split(rest, " | ")
+
+    strip = fn strip ->
+      strip
+      |> String.split(" ")
+      |> Enum.filter(&(&1 != ""))
+      |> Enum.map(&Integer.parse/1)
+      |> Enum.map(&elem(&1, 0))
+      |> MapSet.new()
+    end
+
+    winning = strip.(winning)
+    have = strip.(have)
+
+    {card_num, winning, have}
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  {1, MapSet.new([17, 41, 48, 83, 86]), MapSet.new([6, 9, 17, 31, 48, 53, 83, 86])},
+  {2, MapSet.new([13, 16, 20, 32, 61]), MapSet.new([17, 19, 24, 30, 32, 61, 68, 82])},
+  {3, MapSet.new([1, 21, 44, 53, 59]), MapSet.new([1, 14, 16, 21, 63, 69, 72, 82])},
+  {4, MapSet.new([41, 69, 73, 84, 92]), MapSet.new([5, 51, 54, 58, 59, 76, 83, 84])},
+  {5, MapSet.new([26, 28, 32, 83, 87]), MapSet.new([12, 22, 30, 36, 70, 82, 88, 93])},
+  {6, MapSet.new([13, 18, 31, 56, 72]), MapSet.new([10, 11, 23, 35, 36, 67, 74, 77])}
+]
+```
+
+## Part 1
+
+```elixir
+for {_card, winning, have} <- input do
+  counted =
+    for pick <- have do
+      MapSet.member?(winning, pick)
+    end
+    |> Enum.filter(& &1)
+    |> Enum.count()
+
+  score = Integer.pow(2, counted) / 2
+  floor(score)
+end
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+13
+```
+
+## Part 2
+
+```elixir
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+nil
+```
