@@ -1,0 +1,198 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Advent 2023 - Day 3
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn row ->
+    row
+    |> String.codepoints()
+    |> Enum.map(fn cell ->
+      case Integer.parse(cell) do
+        {x, _} -> x
+        :error -> cell
+      end
+    end)
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  [4, 6, 7, ".", ".", 1, 1, 4, ".", "."],
+  [".", ".", ".", "*", ".", ".", ".", ".", ".", "."],
+  [".", ".", 3, 5, ".", ".", 6, 3, 3, "."],
+  [".", ".", ".", ".", ".", ".", "#", ".", ".", "."],
+  [6, 1, 7, "*", ".", ".", ".", ".", ".", "."],
+  [".", ".", ".", ".", ".", "+", ".", 5, 8, "."],
+  [".", ".", 5, 9, 2, ".", ".", ".", ".", "."],
+  [".", ".", ".", ".", ".", ".", 7, 5, 5, "."],
+  [".", ".", ".", "$", ".", "*", ".", ".", ".", "."],
+  [".", 6, 6, 4, ".", 5, 9, 8, ".", "."]
+]
+```
+
+## Part 1
+
+```elixir
+defmodule Schematic do
+  def mark_valid_cells(list, size) do
+    mark_valid_cells(list, size, 0, list)
+  end
+
+  def mark_valid_cells(_list, _size, _index, []) do
+    []
+  end
+
+  def mark_valid_cells(list, size, index, [cell | rest]) do
+    symbols =
+      [
+        -1,
+        1,
+        -1..1 |> Enum.map(fn x -> -1 * size + x end),
+        -1..1 |> Enum.map(fn x -> size + x end)
+      ]
+      |> List.flatten()
+      |> Enum.map(fn offset -> index + offset end)
+      |> Enum.filter(&(&1 > 0))
+      |> Enum.map(fn index -> Enum.at(list, index) end)
+      |> Enum.filter(&(!is_number(&1) && &1 != "."))
+
+    [
+      {cell, length(symbols) > 0}
+      | mark_valid_cells(list, size, index + 1, rest)
+    ]
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Schematic, <<70, 79, 82, 49, 0, 0, 13, ...>>, {:mark_valid_cells, 4}}
+```
+
+```elixir
+res = Schematic.mark_valid_cells(List.flatten(input), length(input))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  {4, false},
+  {6, false},
+  {7, true},
+  {".", true},
+  {".", true},
+  {1, false},
+  {1, false},
+  {4, false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", true},
+  {"*", false},
+  {".", true},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {3, true},
+  {5, true},
+  {".", true},
+  {".", true},
+  {6, true},
+  {3, true},
+  {3, false},
+  {".", false},
+  {".", false},
+  {".", false},
+  {".", true},
+  {".", true},
+  {".", true},
+  {".", true},
+  {"#", false},
+  {".", true},
+  {".", false},
+  {".", false},
+  {6, false},
+  {1, false},
+  {7, true},
+  {"*", false},
+  {".", true},
+  {".", true},
+  {".", true},
+  {".", true},
+  {".", ...},
+  {...},
+  ...
+]
+```
+
+```elixir
+Enum.chunk_every(res, length(input))
+|> Enum.map(fn row ->
+  row = row ++ [{".", false}]
+
+  row
+  |> Enum.reduce({[], {[], false}}, fn {cell, near}, {so_far, {prev, seen_near}} ->
+    if is_number(cell) do
+      {so_far, {[cell | prev], near || seen_near}}
+    else
+      if seen_near do
+        {[prev |> Enum.reverse() | so_far], {[], false}}
+      else
+        {so_far, {[], false}}
+      end
+    end
+  end)
+end)
+|> Enum.map(&elem(&1, 0))
+|> Enum.concat()
+|> Enum.map(fn part_id ->
+  part_id
+  |> Enum.join()
+  |> Integer.parse()
+  |> elem(0)
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+4361
+```
+
+## Part 2
+
+```elixir
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+nil
+```
