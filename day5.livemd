@@ -15,37 +15,166 @@ input = Kino.Input.textarea("Please paste your input file")
 ```
 
 ```elixir
-input =
+[seeds | mappings] =
   input
   |> Kino.Input.read()
+  |> String.split("\n\n")
+  |> Enum.map(fn category ->
+    category
+    |> String.split(":")
+    |> Enum.at(1)
+    |> String.trim()
+    |> String.split("\n")
+    |> Enum.map(fn chain ->
+      chain
+      |> String.split(" ")
+      |> Enum.map(&Integer.parse/1)
+      |> Enum.map(&elem(&1, 0))
+    end)
+  end)
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-"seeds: 79 14 55 13\n\nseed-to-soil map:\n50 98 2\n52 50 48\n\nsoil-to-fertilizer map:\n0 15 37\n37 52 2\n39 0 15\n\nfertilizer-to-water map:\n49 53 8\n0 11 42\n42 0 7\n57 7 4\n\nwater-to-light map:\n88 18 7\n18 25 70\n\nlight-to-temperature map:\n45 77 23\n81 45 19\n68 64 13\n\ntemperature-to-humidity map:\n0 69 1\n1 0 69\n\nhumidity-to-location map:\n60 56 37\n56 93 4"
+[
+  [[79, 14, 55, 13]],
+  [[50, 98, 2], ~c"420"],
+  [[0, 15, 37], [37, 52, 2], [39, 0, 15]],
+  [~c"15\b", [0, 11, 42], [42, 0, 7], [57, 7, 4]],
+  [[88, 18, 7], [18, 25, 70]],
+  [[45, 77, 23], [81, 45, 19], ~c"D@\r"],
+  [[0, 69, 1], [1, 0, 69]],
+  [~c"<8%", [56, 93, 4]]
+]
+```
+
+```elixir
+seeds = List.flatten(seeds)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[79, 14, 55, 13]
+```
+
+```elixir
+mappings =
+  for mapping <- mappings do
+    for [dest, src, range] <- mapping do
+      {src..(src + range), dest - src}
+    end
+  end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  [{98..100, -48}, {50..98, 2}],
+  [{15..52, -15}, {52..54, -15}, {0..15, 39}],
+  [{53..61, -4}, {11..53, -11}, {0..7, 42}, {7..11, 50}],
+  [{18..25, 70}, {25..95, -7}],
+  [{77..100, -32}, {45..64, 36}, {64..77, 4}],
+  [{69..70, -69}, {0..69, 1}],
+  [{56..93, 4}, {93..97, -37}]
+]
 ```
 
 ## Part 1
 
 ```elixir
+for seed <- seeds do
+  Enum.reduce(mappings, seed, fn mapping, value ->
+    map =
+      Enum.find(mapping, fn {range, _} ->
+        Enum.member?(range, value)
+      end)
 
+    if is_nil(map) do
+      value
+    else
+      {_, to_add} = map
+      value + to_add
+    end
+  end)
+end
+|> Enum.min()
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-nil
+35
 ```
 
 ## Part 2
 
 ```elixir
-
+seed_ranges =
+  seeds
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn [start, range] ->
+    start..(start + range - 1)
+  end)
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-nil
+[79..92, 55..67]
+```
+
+```elixir
+defmodule Almanac do
+end
+```
+
+```elixir
+for seed_range <- seed_ranges do
+  Enum.reduce(mappings, [seed_range], fn mapping, values ->
+    values
+    |> Enum.map(fn value ->
+      IO.puts("value")
+      IO.inspect(value)
+
+      mapping
+      |> Enum.map(fn {range, to_add} ->
+        IO.inspect("what")
+        IO.inspect(range)
+        IO.inspect(value)
+        map_first..map_last//_step = range
+        val_first..val_last//_step = value
+
+        first = if map_first < val_first, do: val_first, else: map_first
+        last = if map_last > val_last, do: val_last, else: map_last
+
+        first..last
+        # (first + to_add)..(last + to_add)
+      end)
+    end)
+    |> List.flatten()
+    |> IO.inspect()
+
+    raise "aaa"
+  end)
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+warning: variable "to_add" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:9
+
+value
+79..92
+"what"
+98..100
+79..92
+"what"
+50..98
+79..92
+[98..92//-1, 79..92]
 ```

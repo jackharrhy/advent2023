@@ -1,0 +1,91 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Advent 2023 - Day 6
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    line
+    |> String.split(" ")
+    |> Enum.map(&Integer.parse/1)
+    |> Enum.filter(&(&1 != :error))
+    |> Enum.map(&elem(&1, 0))
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[[7, 15, 30], [9, 40, 200]]
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.zip()
+|> Enum.map(fn {ms, record} ->
+  range = 1..(ms - 1)
+
+  for held <- range do
+    time_left = ms - held
+    held * time_left
+  end
+  |> Enum.filter(&(&1 > record))
+  |> Enum.count()
+end)
+|> Enum.reduce(fn x, acc -> x * acc end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+288
+```
+
+## Part 2
+
+```elixir
+[ms, record] =
+  input
+  |> Enum.map(fn num ->
+    num
+    |> Enum.join()
+    |> Integer.parse()
+    |> elem(0)
+  end)
+
+range = 1..(ms - 1)
+
+Enum.reduce(range, 0, fn held, records ->
+  time_left = ms - held
+  distance = held * time_left
+
+  if distance > record do
+    records + 1
+  else
+    records
+  end
+end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+71503
+```
