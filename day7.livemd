@@ -1,0 +1,153 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Advent 2023 - Day 7
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.11.3"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("Please paste your input file")
+```
+
+```elixir
+strength_map = %{
+  "T" => 10,
+  "J" => 11,
+  "Q" => 12,
+  "K" => 13,
+  "A" => 14
+}
+
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn line ->
+    [hand, bid] = String.split(line, " ")
+
+    hand =
+      hand
+      |> String.codepoints()
+      |> Enum.map(fn card ->
+        if strength = Map.get(strength_map, card) do
+          {card, strength}
+        else
+          {card, card |> Integer.parse() |> elem(0)}
+        end
+      end)
+
+    bid =
+      bid
+      |> Integer.parse()
+      |> elem(0)
+
+    {hand, bid}
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  {[{"3", 3}, {"2", 2}, {"T", 10}, {"3", 3}, {"K", 13}], 765},
+  {[{"T", 10}, {"5", 5}, {"5", 5}, {"J", 11}, {"5", 5}], 684},
+  {[{"K", 13}, {"K", 13}, {"6", 6}, {"7", 7}, {"7", 7}], 28},
+  {[{"K", 13}, {"T", 10}, {"J", 11}, {"J", 11}, {"T", 10}], 220},
+  {[{"Q", 12}, {"Q", 12}, {"Q", 12}, {"J", 11}, {"A", 14}], 483}
+]
+```
+
+```elixir
+hands =
+  input
+  |> Enum.map(fn {hand, bid} ->
+    hand_freq =
+      hand
+      |> Enum.map(fn {card, _strength} -> card end)
+      |> Enum.frequencies_by(& &1)
+      |> Map.values()
+      |> Enum.sort()
+      |> Enum.reverse()
+
+    hand_strength =
+      case hand_freq do
+        [5] -> 7
+        [4, 1] -> 6
+        [3, 2] -> 5
+        [3, 1, 1] -> 4
+        [2, 2, 1] -> 3
+        [2, 1, 1, 1] -> 2
+        [1, 1, 1, 1, 1] -> 1
+      end
+
+    {hand_strength, hand, bid}
+  end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  {2, [{"3", 3}, {"2", 2}, {"T", 10}, {"3", 3}, {"K", 13}], 765},
+  {4, [{"T", 10}, {"5", 5}, {"5", 5}, {"J", 11}, {"5", 5}], 684},
+  {3, [{"K", 13}, {"K", 13}, {"6", 6}, {"7", 7}, {"7", 7}], 28},
+  {3, [{"K", 13}, {"T", 10}, {"J", 11}, {"J", 11}, {"T", 10}], 220},
+  {4, [{"Q", 12}, {"Q", 12}, {"Q", 12}, {"J", 11}, {"A", 14}], 483}
+]
+```
+
+## Part 1
+
+```elixir
+hands
+|> Enum.sort(fn
+  {card_strength, lcard, _lbid}, {card_strength, rcard, _rbid} ->
+    contest =
+      Enum.zip(lcard, rcard)
+      |> Enum.find(fn
+        {same, same} -> false
+        {_not_the, _same} -> true
+      end)
+
+    if is_nil(contest) do
+      raise "two of the same hand???"
+    else
+      {{_lsuit, lstrength}, {_rsuit, rstrength}} = contest
+
+      lstrength < rstrength
+    end
+
+  {lcard_strength, _lcard, _lbid}, {rcard_strength, _rcard, _rbid} ->
+    lcard_strength <= rcard_strength
+end)
+|> Enum.with_index()
+|> Enum.map(fn {{_hand_strength, _hand, bid}, index} ->
+  rank = index + 1
+  score = bid * rank
+  score
+end)
+|> Enum.sum()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+6440
+```
+
+## Part 2
+
+```elixir
+
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+nil
+```
