@@ -126,9 +126,85 @@ seed_ranges =
 [79..92, 55..67]
 ```
 
+if we have: `30..50`
+
+outside range:
+
+* `10..20 -> {nil, [30..50]}`
+* `60..80 -> {nil, [30..50]}`
+
+corner of range:
+
+* `10..40 -> {30..40<-remap range, [41..50]<-leftover}`
+* `40..60 -> {40..50<-remap range, [30..39]<-leftover}`
+
+within_range:
+
+* `35..45 -> {35..45<-remap range, [30..34,46..50]<-leftover}`
+
+entire_range:
+
+* `30..50 -> {30..50<-remap range, []<-leftover}`
+* `0..100 -> {30..50<-remap range, []<-leftover}`
+
 ```elixir
 defmodule Almanac do
+  # outside of range / disjoint
+  def dice(sl..sr//1 = src, ml..mr//1) when sr < ml or sl > mr, do: {nil, [src]}
+  # corner to the left
+  def dice(sl..sr//1, ml..mr//1) when sl >= ml and sr > mr, do: {sl..mr, [(mr + 1)..sr]}
+  # corner to the right
+  def dice(sl..sr//1, ml..mr//1) when sl < ml and sr <= mr, do: {ml..sr, [sl..(ml - 1)]}
+  # within range
+  def dice(sl..sr//1, ml..mr//1) when sl < ml and sr > mr,
+    do: {ml..mr, [sl..(ml - 1), (mr + 1)..sr]}
+
+  # entire range
+  def dice(sl..sr//1, ml..mr//1) when sl >= ml and sr <= mr, do: {sl..sr, []}
 end
+
+example = 30..50
+
+# outside
+{nil, [30..50]} = Almanac.dice(example, 10..20)
+# corner to the left
+{30..40, [41..50]} = Almanac.dice(example, 10..40)
+# corner to the right
+{40..50, [30..39]} = Almanac.dice(example, 40..60)
+# within range
+{35..45, [30..34, 46..50]} = Almanac.dice(example, 35..45)
+# entire range
+{30..50, []} = Almanac.dice(example, 30..50)
+# also entire range
+{30..50, []} = Almanac.dice(example, 0..100)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{30..50, []}
+```
+
+```elixir
+example = 50..150
+
+Almanac.dice(example, 60..70)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{60..70, [50..59, 71..150]}
+```
+
+```elixir
+Almanac.dice(example, 100..120)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{100..120, [50..99, 121..150]}
 ```
 
 ```elixir
@@ -138,6 +214,16 @@ for seed_range <- seed_ranges do
     |> Enum.map(fn value ->
       IO.puts("value")
       IO.inspect(value)
+
+      Enum.map_reduce(mapping, [value], fn {range, to_add}, leftovers ->
+        leftovers
+        |> Enum.map(fn leftover ->
+          {to_be_mapped, leftover} = Almanac.dice(leftover, range)
+        end)
+        |> IO.inspect()
+
+        raise "fuck"
+      end)
 
       mapping
       |> Enum.map(fn {range, to_add} ->
@@ -165,16 +251,19 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
+warning: variable "leftover" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)
+  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:11
+
+warning: variable "to_be_mapped" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:11
+
 warning: variable "to_add" is unused (if the variable is not meant to be used, prefix it with an underscore)
-  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:9
+  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:8
+
+warning: variable "to_add" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  advent2023/day5.livemd#cell:auevw3s4pafeeggwj3ttbo6gjyez65mo:19
 
 value
 79..92
-"what"
-98..100
-79..92
-"what"
-50..98
-79..92
-[98..92//-1, 79..92]
+[nil: [79..92]]
 ```

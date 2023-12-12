@@ -144,43 +144,13 @@ end
 
 ```elixir
 input
-```
+|> Enum.map(fn line ->
+  first = Trebuchet.calibrate(line, all_words)
+  last = Trebuchet.calibrate(Enum.reverse(line), all_words)
 
-<!-- livebook:{"output":true} -->
-
-```
-[
-  ["t", "w", "o", 1, "n", "i", "n", "e"],
-  ["e", "i", "g", "h", "t", "w", "o", "t", "h", "r", "e", "e"],
-  ["a", "b", "c", "o", "n", "e", 2, "t", "h", "r", "e", "e", "x", "y", "z"],
-  ["x", "t", "w", "o", "n", "e", 3, "f", "o", "u", "r"],
-  [4, "n", "i", "n", "e", "e", "i", "g", "h", "t", "s", "e", "v", "e", "n", 2],
-  ["z", "o", "n", "e", "i", "g", "h", "t", 2, 3, 4],
-  [7, "p", "q", "r", "s", "t", "s", "i", "x", "t", "e", "e", "n"]
-]
-```
-
-```elixir
-res =
-  input
-  |> Enum.map(fn line ->
-    first = Trebuchet.calibrate(line, all_words)
-    last = Trebuchet.calibrate(Enum.reverse(line), all_words)
-
-    first * 10 + last
-  end)
-
-res
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-[29, 83, 13, 24, 42, 14, 76]
-```
-
-```elixir
-res |> Enum.sum()
+  first * 10 + last
+end)
+|> Enum.sum()
 ```
 
 <!-- livebook:{"output":true} -->

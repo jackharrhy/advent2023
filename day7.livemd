@@ -15,37 +15,14 @@ input = Kino.Input.textarea("Please paste your input file")
 ```
 
 ```elixir
-strength_map = %{
-  "T" => 10,
-  "J" => 11,
-  "Q" => 12,
-  "K" => 13,
-  "A" => 14
-}
-
 input =
   input
   |> Kino.Input.read()
   |> String.split("\n")
   |> Enum.map(fn line ->
     [hand, bid] = String.split(line, " ")
-
-    hand =
-      hand
-      |> String.codepoints()
-      |> Enum.map(fn card ->
-        if strength = Map.get(strength_map, card) do
-          {card, strength}
-        else
-          {card, card |> Integer.parse() |> elem(0)}
-        end
-      end)
-
-    bid =
-      bid
-      |> Integer.parse()
-      |> elem(0)
-
+    hand = String.codepoints(hand)
+    bid = bid |> Integer.parse() |> elem(0)
     {hand, bid}
   end)
 ```
@@ -54,12 +31,46 @@ input =
 
 ```
 [
-  {[{"3", 3}, {"2", 2}, {"T", 10}, {"3", 3}, {"K", 13}], 765},
-  {[{"T", 10}, {"5", 5}, {"5", 5}, {"J", 11}, {"5", 5}], 684},
-  {[{"K", 13}, {"K", 13}, {"6", 6}, {"7", 7}, {"7", 7}], 28},
-  {[{"K", 13}, {"T", 10}, {"J", 11}, {"J", 11}, {"T", 10}], 220},
-  {[{"Q", 12}, {"Q", 12}, {"Q", 12}, {"J", 11}, {"A", 14}], 483}
+  {["3", "2", "T", "3", "K"], 765},
+  {["T", "5", "5", "J", "5"], 684},
+  {["K", "K", "6", "7", "7"], 28},
+  {["K", "T", "J", "J", "T"], 220},
+  {["Q", "Q", "Q", "J", "A"], 483}
 ]
+```
+
+```elixir
+strength_of_card = fn strength_map, card ->
+  if strength = Map.get(strength_map, card) do
+    {card, strength}
+  else
+    {card, card |> Integer.parse() |> elem(0)}
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<41.105768164/2 in :erl_eval.expr/6>
+```
+
+## Part 1
+
+```elixir
+first_ruleset_strength_map = %{
+  "T" => 10,
+  "J" => 11,
+  "Q" => 12,
+  "K" => 13,
+  "A" => 14
+}
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{"A" => 14, "J" => 11, "K" => 13, "Q" => 12, "T" => 10}
 ```
 
 ```elixir
@@ -68,7 +79,7 @@ hands =
   |> Enum.map(fn {hand, bid} ->
     hand_freq =
       hand
-      |> Enum.map(fn {card, _strength} -> card end)
+      |> Enum.map(fn card -> card end)
       |> Enum.frequencies_by(& &1)
       |> Map.values()
       |> Enum.sort()
@@ -93,37 +104,37 @@ hands =
 
 ```
 [
-  {2, [{"3", 3}, {"2", 2}, {"T", 10}, {"3", 3}, {"K", 13}], 765},
-  {4, [{"T", 10}, {"5", 5}, {"5", 5}, {"J", 11}, {"5", 5}], 684},
-  {3, [{"K", 13}, {"K", 13}, {"6", 6}, {"7", 7}, {"7", 7}], 28},
-  {3, [{"K", 13}, {"T", 10}, {"J", 11}, {"J", 11}, {"T", 10}], 220},
-  {4, [{"Q", 12}, {"Q", 12}, {"Q", 12}, {"J", 11}, {"A", 14}], 483}
+  {2, ["3", "2", "T", "3", "K"], 765},
+  {4, ["T", "5", "5", "J", "5"], 684},
+  {3, ["K", "K", "6", "7", "7"], 28},
+  {3, ["K", "T", "J", "J", "T"], 220},
+  {4, ["Q", "Q", "Q", "J", "A"], 483}
 ]
 ```
-
-## Part 1
 
 ```elixir
 hands
 |> Enum.sort(fn
-  {card_strength, lcard, _lbid}, {card_strength, rcard, _rbid} ->
+  {hand_strength, lhand, _lbid}, {hand_strength, rhand, _rbid} ->
     contest =
-      Enum.zip(lcard, rcard)
+      Enum.zip(lhand, rhand)
       |> Enum.find(fn
-        {same, same} -> false
-        {_not_the, _same} -> true
+        {same_card, same_card} -> false
+        {_not_the, _same_card} -> true
       end)
 
     if is_nil(contest) do
       raise "two of the same hand???"
     else
-      {{_lsuit, lstrength}, {_rsuit, rstrength}} = contest
+      {lcard, rcard} = contest
+      lstrength = strength_of_card.(first_ruleset_strength_map, lcard)
+      rstrength = strength_of_card.(first_ruleset_strength_map, rcard)
 
       lstrength < rstrength
     end
 
-  {lcard_strength, _lcard, _lbid}, {rcard_strength, _rcard, _rbid} ->
-    lcard_strength <= rcard_strength
+  {lhand_strength, _lhand, _lbid}, {rhand_strength, _rhand, _rbid} ->
+    lhand_strength <= rhand_strength
 end)
 |> Enum.with_index()
 |> Enum.map(fn {{_hand_strength, _hand, bid}, index} ->
@@ -137,7 +148,7 @@ end)
 <!-- livebook:{"output":true} -->
 
 ```
-6440
+6833
 ```
 
 ## Part 2
@@ -146,8 +157,56 @@ end)
 
 ```
 
+```elixir
+hands =
+  input
+  |> Enum.map(fn {hand, bid} ->
+    {j_count, freq} =
+      hand
+      |> Enum.map(fn {card, _strength} -> card end)
+      |> Enum.frequencies_by(& &1)
+      |> Map.pop("J")
+
+    if j_count == 5 do
+      raise "all jokers???"
+    end
+
+    freq =
+      freq
+      |> Map.values()
+      |> Enum.sort()
+      |> Enum.reverse()
+
+    freq =
+      if is_nil(j_count) do
+        freq
+      else
+        freq |> List.update_at(0, &(&1 + j_count))
+      end
+
+    hand_strength =
+      case freq do
+        [5] -> 7
+        [4, 1] -> 6
+        [3, 2] -> 5
+        [3, 1, 1] -> 4
+        [2, 2, 1] -> 3
+        [2, 1, 1, 1] -> 2
+        [1, 1, 1, 1, 1] -> 1
+      end
+
+    {hand_strength, hand, bid}
+  end)
+```
+
 <!-- livebook:{"output":true} -->
 
 ```
-nil
+[
+  {2, [{"3", 3}, {"2", 2}, {"T", 10}, {"3", 3}, {"K", 13}], 765},
+  {6, [{"T", 10}, {"5", 5}, {"5", 5}, {"J", 11}, {"5", 5}], 684},
+  {3, [{"K", 13}, {"K", 13}, {"6", 6}, {"7", 7}, {"7", 7}], 28},
+  {6, [{"K", 13}, {"T", 10}, {"J", 11}, {"J", 11}, {"T", 10}], 220},
+  {6, [{"Q", 12}, {"Q", 12}, {"Q", 12}, {"J", 11}, {"A", 14}], 483}
+]
 ```
